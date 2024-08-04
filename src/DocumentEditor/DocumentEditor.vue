@@ -212,6 +212,11 @@ export default {
         const page = this.pages[page_idx];
         let next_page = this.pages[page_idx + 1];
         let next_page_elt = next_page ? next_page.elt : null;
+        
+        // mm in pixel
+        const mmInPx = 3.78
+        // convert with in mm to pixel
+        const pageWidth = Math.ceil(this.page_format_mm[0] * mmInPx)
 
         // check if this page, the next page, or any previous page content has been modified by the user (don't apply to template pages)
         if(!page.template && (prev_page_modified_flag || page.elt.innerHTML != page.prev_innerHTML
@@ -222,13 +227,18 @@ export default {
           // check if content doesn't overflow, and that next page exists and has the same content_idx
           if(page.elt.clientHeight <= this.pages_height && next_page && next_page.content_idx == page.content_idx) {
 
+            const stop_condition = () => {
+              return !next_page_elt.childNodes.length || (page.elt.clientHeight <= this.pages_height && page.elt.scrollWidth <= pageWidth)
+            }
+           
             // try to append every node from the next page until it doesn't fit
-            move_children_backwards_with_merging(page.elt, next_page_elt, () => !next_page_elt.childNodes.length || (page.elt.clientHeight > this.pages_height));
+            move_children_backwards_with_merging(page.elt, next_page_elt, stop_condition);
           }
+
 
           // FORWARD-PROPAGATION
           // check if content overflows
-          if(page.elt.clientHeight > this.pages_height) {
+          if(page.elt.clientHeight > this.pages_height || page.elt.scrollWidth > pageWidth) {
 
             // if there is no next page for the same content, create it
             if(!next_page || next_page.content_idx != page.content_idx) {
@@ -238,8 +248,12 @@ export default {
               next_page_elt = next_page.elt;
             }
 
+            const stop_condition = () => {
+              return page.elt.scrollWidth <= pageWidth && page.elt.clientHeight <= this.pages_height
+            }
+
             // move the content step by step to the next page, until it fits
-            move_children_forward_recursively(page.elt, next_page_elt, () => (page.elt.clientHeight <= this.pages_height), this.do_not_break);
+            move_children_forward_recursively(page.elt, next_page_elt, stop_condition, this.do_not_break);
           }
 
           // CLEANING
@@ -424,6 +438,8 @@ export default {
           page.elt = document.createElement("div");
           page.elt.className = "page";
           page.elt.dataset.isVDEPage = "";
+          // diferentation between template and content pages
+          page.elt.dataset.isTemplate = page.template ? true : false
           const next_page = this.pages[page_idx + 1];
           this.$refs.content.insertBefore(page.elt, next_page ? next_page.elt : null);
         }
@@ -528,6 +544,9 @@ export default {
 
       // recompute editor with and reposition elements
       this.update_editor_width();
+    },
+    set_varivale_css() {
+      document.body.style.setProperty('--page-height', `${this.page_format_mm[0]}mm`);
     }
   },
 
@@ -547,6 +566,7 @@ export default {
     },
     page_format_mm: {
       handler () {
+        this.set_varivale_css()
         this.update_css_media_style();
         this.reset_content();
       }
@@ -569,6 +589,7 @@ body {
   /* Enable printing of background colors */
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
+  --page-height: 210mm
 }
 </style>
 <style scoped>

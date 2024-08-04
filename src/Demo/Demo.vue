@@ -373,7 +373,7 @@ export default {
         }
         this._mute_next_content_watcher = false;
       }
-    }
+    },
   }
 }
 </script>
@@ -406,6 +406,15 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background-color: rgba(0, 0, 0, 0.8);
 }
+
+
+/* set 2 colums each paper except template */
+.page:not([data-is-template="true"]) {
+  max-height: var(--page-height);
+  columns: 2;
+  column-fill: auto;
+}
+
 </style>
 
 <style scoped>
